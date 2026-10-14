@@ -1,0 +1,2 @@
+class LLMOutputError(Exception):
+    pass
