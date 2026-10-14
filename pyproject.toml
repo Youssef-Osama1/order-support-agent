@@ -1,7 +1,7 @@
 [project]
-name = "ai-project-template"
+name = "order-support-agent"
 version = "0.1.0"
-description = "Layered async FastAPI template for LLM applications"
+description = "Answer customer order questions with an LLM agent that calls tools over order data"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

@@ -1,6 +1,6 @@
-# AI Project Template
+# Order Support Agent
 
-A production-ready Python starting point for LLM and AI backends.
+A customer support agent that answers order questions by calling tools over order data, built on a hand-written tool-calling loop.
 
 ## Quick Start
 
