@@ -1,0 +1,94 @@
+{
+  "orders": [
+    {
+      "order_id": 1041,
+      "customer_email": "sara@example.com",
+      "status": "delivered",
+      "category": "clothing",
+      "items": [{"name": "Linen Shirt", "quantity": 2, "unit_price": "450.00"}],
+      "ordered_at": "2026-09-14",
+      "shipped_at": "2026-09-16",
+      "delivered_at": "2026-09-20",
+      "tracking_number": "EG100041"
+    },
+    {
+      "order_id": 1042,
+      "customer_email": "sara@example.com",
+      "status": "delivered",
+      "category": "electronics",
+      "items": [{"name": "Wireless Earbuds", "quantity": 1, "unit_price": "1899.00"}],
+      "ordered_at": "2026-09-30",
+      "shipped_at": "2026-10-02",
+      "delivered_at": "2026-10-05",
+      "tracking_number": "EG100042"
+    },
+    {
+      "order_id": 1043,
+      "customer_email": "omar@example.com",
+      "status": "delivered",
+      "category": "electronics",
+      "items": [{"name": "USB-C Charger", "quantity": 1, "unit_price": "650.00"}],
+      "ordered_at": "2026-09-03",
+      "shipped_at": "2026-09-05",
+      "delivered_at": "2026-09-10",
+      "tracking_number": "EG100043"
+    },
+    {
+      "order_id": 1044,
+      "customer_email": "omar@example.com",
+      "status": "shipped",
+      "category": "clothing",
+      "items": [{"name": "Denim Jacket", "quantity": 1, "unit_price": "1200.00"}],
+      "ordered_at": "2026-10-11",
+      "shipped_at": "2026-10-13",
+      "tracking_number": "EG100044"
+    },
+    {
+      "order_id": 1045,
+      "customer_email": "mona@example.com",
+      "status": "processing",
+      "category": "books",
+      "items": [
+        {"name": "Clean Code", "quantity": 1, "unit_price": "520.00"},
+        {"name": "Designing Data-Intensive Applications", "quantity": 1, "unit_price": "780.00"}
+      ],
+      "ordered_at": "2026-10-14"
+    },
+    {
+      "order_id": 1046,
+      "customer_email": "mona@example.com",
+      "status": "cancelled",
+      "category": "electronics",
+      "items": [{"name": "Smart Watch", "quantity": 1, "unit_price": "3400.00"}],
+      "ordered_at": "2026-10-08"
+    },
+    {
+      "order_id": 1047,
+      "customer_email": "sara@example.com",
+      "status": "delivered",
+      "category": "personal_care",
+      "items": [{"name": "Electric Toothbrush", "quantity": 1, "unit_price": "990.00"}],
+      "ordered_at": "2026-10-06",
+      "shipped_at": "2026-10-07",
+      "delivered_at": "2026-10-10",
+      "tracking_number": "EG100047"
+    },
+    {
+      "order_id": 1048,
+      "customer_email": "omar@example.com",
+      "status": "delivered",
+      "category": "books",
+      "items": [{"name": "The Pragmatic Programmer", "quantity": 1, "unit_price": "610.00"}],
+      "ordered_at": "2026-09-10",
+      "shipped_at": "2026-09-12",
+      "delivered_at": "2026-09-15",
+      "tracking_number": "EG100048"
+    }
+  ],
+  "return_policies": [
+    {"category": "electronics", "returnable": true, "window_days": 14, "conditions": "Unopened or defective, with all original accessories."},
+    {"category": "clothing", "returnable": true, "window_days": 30, "conditions": "Unworn, with original tags attached."},
+    {"category": "books", "returnable": true, "window_days": 30, "conditions": "No markings or damage."},
+    {"category": "personal_care", "returnable": false, "window_days": 0, "conditions": "Not returnable for hygiene reasons unless defective."}
+  ]
+}
