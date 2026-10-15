@@ -2,7 +2,7 @@ import logging
 import time
 
 from openai import AsyncOpenAI, BadRequestError
-from openai.types.chat import ChatCompletion
+from openai.types.chat import ChatCompletion, ChatCompletionMessage
 from openai.types.chat.chat_completion import Choice
 from pydantic import BaseModel
 
@@ -58,6 +58,24 @@ class LLMClient:
                 f"Model returned no {schema.__name__}: refusal={choice.message.refusal!r}"
             )
         return parsed
+
+    async def chat(
+        self, messages: list[dict], tools: list[dict]
+    ) -> ChatCompletionMessage:
+        started = time.perf_counter()
+        try:
+            response = await self._client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                tools=tools,
+                temperature=self._temperature,
+            )
+        except BadRequestError as error:
+            if error.code == "tool_use_failed":
+                raise LLMOutputError("Model produced an invalid tool call") from error
+            raise
+        choice = self._log_response(response, time.perf_counter() - started)
+        return choice.message
 
     async def close(self) -> None:
         await self._client.close()

@@ -5,6 +5,11 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 from openai import BadRequestError
+from openai.types.chat import (
+    ChatCompletionMessage,
+    ChatCompletionMessageFunctionToolCall,
+)
+from openai.types.chat.chat_completion_message_function_tool_call import Function
 from pydantic import BaseModel
 
 from app.core.exceptions import LLMOutputError
@@ -144,3 +149,96 @@ async def test_close_closes_the_sdk_client(llm, fake_openai):
     await llm.close()
 
     fake_openai.close.assert_awaited_once()
+
+
+TOOLS = [{"type": "function", "function": {"name": "get_order", "parameters": {}}}]
+
+
+def tool_call_message():
+    return ChatCompletionMessage(
+        role="assistant",
+        content=None,
+        tool_calls=[
+            ChatCompletionMessageFunctionToolCall(
+                id="call_1",
+                type="function",
+                function=Function(name="get_order", arguments='{"order_id": 1042}'),
+            )
+        ],
+    )
+
+
+def fake_chat_response(message, finish_reason):
+    return SimpleNamespace(
+        choices=[SimpleNamespace(message=message, finish_reason=finish_reason)],
+        usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5),
+    )
+
+
+async def test_chat_sends_messages_and_tools_as_given(llm, fake_openai):
+    messages = [{"role": "user", "content": "Where is order 1042?"}]
+    fake_openai.chat.completions.create.return_value = fake_chat_response(
+        tool_call_message(), "tool_calls"
+    )
+
+    await llm.chat(messages, TOOLS)
+
+    kwargs = fake_openai.chat.completions.create.call_args.kwargs
+    assert kwargs["messages"] is messages
+    assert kwargs["tools"] is TOOLS
+    assert kwargs["model"] == "test-model"
+
+
+async def test_chat_returns_tool_call_message(llm, fake_openai):
+    fake_openai.chat.completions.create.return_value = fake_chat_response(
+        tool_call_message(), "tool_calls"
+    )
+
+    message = await llm.chat([{"role": "user", "content": "hi"}], TOOLS)
+
+    assert message.content is None
+    assert message.tool_calls[0].function.name == "get_order"
+    assert message.tool_calls[0].function.arguments == '{"order_id": 1042}'
+
+
+async def test_chat_returns_final_text_message(llm, fake_openai):
+    final = ChatCompletionMessage(role="assistant", content="It was delivered.")
+    fake_openai.chat.completions.create.return_value = fake_chat_response(final, "stop")
+
+    message = await llm.chat([{"role": "user", "content": "hi"}], TOOLS)
+
+    assert message.content == "It was delivered."
+    assert message.tool_calls is None
+
+
+async def test_chat_logs_finish_reason(llm, fake_openai, caplog):
+    fake_openai.chat.completions.create.return_value = fake_chat_response(
+        tool_call_message(), "tool_calls"
+    )
+
+    with caplog.at_level(logging.INFO):
+        await llm.chat([{"role": "user", "content": "hi"}], TOOLS)
+
+    assert "finish_reason=tool_calls" in caplog.text
+
+
+async def test_chat_raises_when_tool_call_is_malformed(llm, fake_openai):
+    fake_openai.chat.completions.create.side_effect = BadRequestError(
+        "tool call failed",
+        response=httpx.Response(400, request=httpx.Request("POST", "https://test")),
+        body={"code": "tool_use_failed"},
+    )
+
+    with pytest.raises(LLMOutputError, match="invalid tool call"):
+        await llm.chat([{"role": "user", "content": "hi"}], TOOLS)
+
+
+async def test_chat_reraises_other_bad_requests(llm, fake_openai):
+    fake_openai.chat.completions.create.side_effect = BadRequestError(
+        "model not found",
+        response=httpx.Response(400, request=httpx.Request("POST", "https://test")),
+        body={"code": "model_not_found"},
+    )
+
+    with pytest.raises(BadRequestError):
+        await llm.chat([{"role": "user", "content": "hi"}], TOOLS)
