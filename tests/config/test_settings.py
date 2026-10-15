@@ -1,3 +1,5 @@
+from datetime import UTC, date, datetime
+
 import pytest
 from pydantic import ValidationError
 
@@ -22,3 +24,37 @@ def test_missing_api_key_fails_fast(monkeypatch):
 def test_invalid_log_level_is_rejected():
     with pytest.raises(ValidationError):
         Settings(_env_file=None, llm_api_key="k", log_level="INFOO")
+
+
+def test_orders_path_defaults_to_repo_data_file():
+    settings = Settings(_env_file=None, llm_api_key="k")
+
+    assert settings.orders_path.is_absolute()
+    assert settings.orders_path.exists()
+    assert settings.orders_path.parts[-2:] == ("data", "orders.json")
+
+
+def test_current_date_uses_override_when_set():
+    settings = Settings(_env_file=None, llm_api_key="k", today_override="2026-10-15")
+
+    assert settings.current_date() == date(2026, 10, 15)
+
+
+def test_current_date_falls_back_to_utc_today(monkeypatch):
+    monkeypatch.delenv("TODAY_OVERRIDE", raising=False)
+    settings = Settings(_env_file=None, llm_api_key="k")
+
+    assert settings.today_override is None
+    assert settings.current_date() == datetime.now(UTC).date()
+
+
+def test_agent_max_steps_defaults_to_five(monkeypatch):
+    monkeypatch.delenv("AGENT_MAX_STEPS", raising=False)
+
+    assert Settings(_env_file=None, llm_api_key="k").agent_max_steps == 5
+
+
+@pytest.mark.parametrize("steps", [0, 11])
+def test_agent_max_steps_out_of_range_is_rejected(steps):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, llm_api_key="k", agent_max_steps=steps)
