@@ -1,15 +1,29 @@
 import json
 
 import pytest
+from fastapi.testclient import TestClient
 
-from app.core.exceptions import LLMOutputError
-from app.main import handle_llm_output_error
+from app.core.exceptions import AgentStepLimitError, LLMOutputError
+from app.main import app, handle_model_failure
+from app.repositories.order_repository import OrderRepository
+from app.services.llm_client import LLMClient
 
-pytestmark = pytest.mark.anyio
 
-
-async def test_llm_output_error_becomes_502():
-    response = await handle_llm_output_error(None, LLMOutputError("refused"))
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "error", [LLMOutputError("refused"), AgentStepLimitError("too many steps")]
+)
+async def test_model_failures_become_502(error):
+    response = await handle_model_failure(None, error)
 
     assert response.status_code == 502
-    assert json.loads(response.body) == {"detail": "refused"}
+    assert json.loads(response.body) == {"detail": str(error)}
+
+
+def test_lifespan_loads_repository_and_llm_client(monkeypatch, settings):
+    monkeypatch.setattr("app.main.get_settings", lambda: settings)
+
+    with TestClient(app):
+        assert isinstance(app.state.order_repository, OrderRepository)
+        assert app.state.order_repository.find_order(1042) is not None
+        assert isinstance(app.state.llm_client, LLMClient)
