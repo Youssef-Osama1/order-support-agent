@@ -1,5 +1,7 @@
 # Order Support Agent
 
+[![CI](https://github.com/Youssef-Osama1/order-support-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Youssef-Osama1/order-support-agent/actions/workflows/ci.yml)
+
 A customer support agent that answers order questions by calling tools over order data, built on a hand-written tool-calling loop.
 
 Send a customer message and the agent decides which tools to call, runs them against the order
@@ -51,9 +53,41 @@ uv run python -m playground.try_support              # a few messages through th
 
 The evals check whether the agent called the right tools with the right arguments, not only the reply.
 
+## Docker
+
+```bash
+docker build -f docker/Dockerfile -t order-support-agent .
+docker run --rm -p 8000:8000 --env-file .env order-support-agent
+```
+
+The image installs runtime dependencies only, includes `data/orders.json`, runs as a
+non-root user and listens on `$PORT` (default 8000). `.env` is never copied into the
+image, so secrets are passed at run time. Values in `.env` must not be quoted for
+`--env-file`.
+
+## CI and Deployment
+
+Every push to `main` and every pull request runs `.github/workflows/ci.yml`: ruff lint,
+ruff format check, pytest and a Docker build.
+
+The app runs on Render as a Docker web service:
+
+| Setting | Value |
+|---|---|
+| Dockerfile path | `./docker/Dockerfile` |
+| Build context | `.` |
+| Health check path | `/health` |
+| Auto-deploy | After CI checks pass |
+| Environment | `LLM_API_KEY`, `TODAY_OVERRIDE` (other settings have defaults) |
+
+`TODAY_OVERRIDE` fixes the date used for return eligibility, so answers match the sample
+orders. Without it, eligibility is checked against the real date and return windows close
+over time.
+
 ## Project Structure
 
 ```text
+├── .github/          # CI workflow
 ├── app/
 │   ├── api/          # Routes, dependencies and request/response models
 │   ├── config/       # Settings loaded from .env
@@ -65,7 +99,7 @@ The evals check whether the agent called the right tools with the right argument
 │   ├── tools/        # Order tools
 │   └── main.py       # FastAPI app entry point
 ├── data/             # Sample orders and return policies
-├── docker/           # Docker configurations
+├── docker/           # Dockerfile
 ├── docs/             # Documentation files
 ├── evals/            # Eval cases and runner
 ├── playground/       # Experimental code, never imported by app/
